@@ -1,73 +1,47 @@
 package internal
 
 import (
-	"fmt"
 	"strings"
 )
 
-// RenderASCIIArt converts text to ASCII using the given templates.
+// RenderASCIIArt processes the input string and returns its ASCII art representation as a string.
 func RenderASCIIArt(text string, asciiTemplates [][]string) string {
-	var result string
-	for i := 0; i < len(asciiTemplates[0]); i++ { // Loop over rows of ASCII characters
-		for _, char := range text {
-			if int(char)-32 >= 0 && int(char)-32 < len(asciiTemplates) {
-				result += asciiTemplates[int(char)-32][i] + " "
-			}
+	// Split input text by newline markers
+	substrings := SplitNewline(text)
+	// Variable to track the count of consecutive newlines
+	var result strings.Builder
+	// Loop through the substrings and process each one
+	for i := 0; i < len(substrings); i++ {
+		if substrings[i] == "\\n" {
+			result.WriteString("\n") // Handle escaped newlines
+		} else {
+			// Process each word individually
+			result.WriteString(PrintASCIICharacters(substrings[i], asciiTemplates))
 		}
-		result += "\n"
 	}
-	return result
+	return result.String()
 }
 
-// RenderASCIIArt processes the input string and prints its ASCII art representation.
-// func RenderASCIIArt(text string, asciiTemplates [][]string) {
-// 	// Split input text by newline markers
-// 	substrings := SplitNewline(text)
-
-// 	// Variable to track the count of consecutive newlines
-// 	wordnumber := 0
-// 	wordcount := 0
-// 	for i := 0; i < len(substrings); i++ {
-// 		if substrings[i] != "\\n" {
-// 			wordnumber++
-// 		}
-// 	}
-// 	for i := 0; i < len(substrings); i++ {
-// 		if wordcount == 0 && substrings[i] == "\\n" {
-// 			fmt.Println()
-// 		} else if wordcount != 0 && substrings[i] == "\\n" && wordcount < wordnumber {
-// 			if substrings[i+1] != "\\n" {
-// 				continue
-// 			}
-// 			fmt.Println()
-// 		} else if wordcount == wordnumber && substrings[i] == "\\n" {
-// 			fmt.Println()
-// 		} else {
-// 			PrintASCIICharacters(substrings[i], asciiTemplates)
-// 			wordcount++
-// 		}
-// 	}
-// }
-
-// PrintASCIICharacters prints the ASCII art representation of a given string.
-func PrintASCIICharacters(text string, asciiTemplates [][]string) {
+// PrintASCIICharacters generates the ASCII art for each character in the input text.
+func PrintASCIICharacters(text string, asciiTemplates [][]string) string {
 	// Convert the text into indices corresponding to ASCII characters
 	charIndices := ConvertTextToASCIIIndices(text)
-	// Render each line of the ASCII art (8 lines per character)
+	// Prepare a string builder to accumulate the result
+	var result strings.Builder
+	// Render each line of the ASCII art (assuming 8 lines per character)
 	for i := 0; i < 8; i++ {
-		var line strings.Builder // Efficient string concatenation
 		for j, index := range charIndices {
+			// Ensure valid index and print ASCII art for each character
 			if index >= 0 && index < len(asciiTemplates) {
-				line.WriteString(asciiTemplates[index][i]) // Append ASCII art for the character
-				// } else {
-				// 	line.WriteString("[, ], !") // Handle unsupported characters
-				// }
-				// Add a space between characters except the last one
-				if j < len(charIndices)-1 {
-					line.WriteString(" ")
-				}
-			} // Print the constructed line
+				result.WriteString(asciiTemplates[index][i])
+			}
+			// Add a space between characters except the last one
+			if j < len(charIndices)-1 {
+				result.WriteString(" ")
+			}
 		}
-		fmt.Println(line.String())
+		// Add a newline after each row of characters
+		result.WriteString("\n")
 	}
+	return result.String()
 }
