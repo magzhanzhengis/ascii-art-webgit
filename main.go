@@ -94,5 +94,6 @@ func notFoundHandler(w http.ResponseWriter, r *http.Request) {
 	if err != nil {
 		http.Error(w, "Failed to render result", http.StatusInternalServerError)
 	}
-	w.WriteHeader(http.StatusNotFound)
+	http.Error(w, "", http.StatusNotFound)
+	// w.WriteHeader(http.StatusNotFound)
 }
