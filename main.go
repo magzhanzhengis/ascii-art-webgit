@@ -12,11 +12,14 @@ import (
 var templates = template.Must(template.ParseGlob("templates/*.html"))
 
 func main() {
-	http.HandleFunc("/", indexHandler)
-	http.HandleFunc("/ascii-art", asciiArtHandler)
+	mux := http.NewServeMux()
+	mux.HandleFunc("/", indexHandler)
+	mux.HandleFunc("/ascii-art", asciiArtHandler)
+
+	mux.Handle("/static/", http.StripPrefix("/static/", http.FileServer(http.Dir("static"))))
 
 	fmt.Println("Starting server at http://localhost:8080")
-	log.Fatal(http.ListenAndServe(":8080", nil))
+	log.Fatal(http.ListenAndServe(":8080", mux))
 }
 
 // indexHandler serves the main page
