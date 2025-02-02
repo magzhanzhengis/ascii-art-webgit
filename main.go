@@ -15,15 +15,20 @@ func main() {
 	mux := http.NewServeMux()
 	mux.HandleFunc("/", indexHandler)
 	mux.HandleFunc("/ascii-art", asciiArtHandler)
+	mux.HandleFunc("/notfound", notFoundHandler)
 
 	mux.Handle("/static/", http.StripPrefix("/static/", http.FileServer(http.Dir("static"))))
 
-	fmt.Println("Starting server at http://localhost:8080")
-	log.Fatal(http.ListenAndServe(":8080", mux))
+	fmt.Println("Starting server at http://localhost:80")
+	log.Fatal(http.ListenAndServe(":80", mux))
 }
 
 // indexHandler serves the main page
 func indexHandler(w http.ResponseWriter, r *http.Request) {
+	if r.URL.Path != "/" {
+		notFoundHandler(w, r)
+		return
+	}
 	err := templates.ExecuteTemplate(w, "index.html", nil)
 	if err != nil {
 		http.Error(w, "Failed to load page", http.StatusInternalServerError)
@@ -32,6 +37,15 @@ func indexHandler(w http.ResponseWriter, r *http.Request) {
 
 // asciiArtHandler processes the form and reloads the same page with ASCII output
 func asciiArtHandler(w http.ResponseWriter, r *http.Request) {
+	if r.Method == http.MethodGet {
+		// ✅ For GET requests, just render the main page like the homepage
+		err := templates.ExecuteTemplate(w, "index.html", nil)
+		if err != nil {
+			http.Error(w, "Failed to load page", http.StatusInternalServerError)
+		}
+		return
+	}
+
 	if r.Method != http.MethodPost {
 		http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
 		return
@@ -71,4 +85,14 @@ func asciiArtHandler(w http.ResponseWriter, r *http.Request) {
 	if err != nil {
 		http.Error(w, "Failed to render result", http.StatusInternalServerError)
 	}
+}
+
+// notFoundHandler - 404 not found page
+func notFoundHandler(w http.ResponseWriter, r *http.Request) {
+
+	err := templates.ExecuteTemplate(w, "404.html", nil)
+	if err != nil {
+		http.Error(w, "Failed to render result", http.StatusInternalServerError)
+	}
+	w.WriteHeader(http.StatusNotFound)
 }
