@@ -37,63 +37,74 @@ func indexHandler(w http.ResponseWriter, r *http.Request) {
 
 // asciiArtHandler processes the form and reloads the same page with ASCII output
 func asciiArtHandler(w http.ResponseWriter, r *http.Request) {
-	if r.Method == http.MethodGet {
-		// ✅ For GET requests, just render the main page like the homepage
+	switch r.Method {
+	case http.MethodGet:
+		// Render the main page for GET requests
 		err := templates.ExecuteTemplate(w, "index.html", nil)
 		if err != nil {
 			http.Error(w, "Failed to load page", http.StatusInternalServerError)
 		}
-		return
+	case http.MethodPost:
+		// Handle POST requests as usual
+		processAsciiArt(w, r)
+	default:
+		// ✅ Handle unsupported HTTP methods
+		renderError(w, http.StatusMethodNotAllowed, fmt.Sprintf("405 - Method '%s' Not Allowed", r.Method))
 	}
+}
 
-	if r.Method != http.MethodPost {
-		http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
-		return
-	}
-
-	// Parse form data
+func processAsciiArt(w http.ResponseWriter, r *http.Request) {
 	if err := r.ParseForm(); err != nil {
-		http.Error(w, "Failed to parse form data", http.StatusBadRequest)
+		renderError(w, http.StatusBadRequest, "400 - Bad Request: Failed to parse form data")
 		return
 	}
 
 	text := r.FormValue("inputText")
 	bannerType := r.FormValue("banner")
 
-	// Validate input
 	if internal.ContainsNonASCII(text) {
-		http.Error(w, "Input contains non-ASCII characters", http.StatusBadRequest)
+		renderError(w, http.StatusBadRequest, "400 - Input contains non-ASCII characters")
 		return
 	}
 
-	// Load the banner file
 	bannerPath := filepath.Join("banners", bannerType+".txt")
-	lines := internal.ReadBannerFile(bannerPath)
-	asciiTemplates := internal.ParseBanner(lines)
+	lines, err := internal.ReadBannerFile(bannerPath)
+	if err != nil {
+		renderError(w, http.StatusNotFound, fmt.Sprintf("404 - Banner '%s' Not Found", bannerType))
+		return
+	}
 
-	// Generate ASCII art
+	asciiTemplates := internal.ParseBanner(lines)
 	output := internal.RenderASCIIArt(text, asciiTemplates)
 
-	// Render the same index.html but with ASCII output
 	data := struct {
 		AsciiArt string
 	}{
 		AsciiArt: output,
 	}
 
-	err := templates.ExecuteTemplate(w, "index.html", data)
+	err = templates.ExecuteTemplate(w, "index.html", data)
 	if err != nil {
-		http.Error(w, "Failed to render result", http.StatusInternalServerError)
+		renderError(w, http.StatusInternalServerError, "500 - Internal Server Error")
+	}
+}
+
+func renderError(w http.ResponseWriter, status int, message string) {
+	w.WriteHeader(status)
+	data := struct {
+		Status  int
+		Message string
+	}{
+		Status:  status,
+		Message: message,
+	}
+	err := templates.ExecuteTemplate(w, "error.html", data)
+	if err != nil {
+		http.Error(w, "An unexpected error occurred", http.StatusInternalServerError)
 	}
 }
 
 // notFoundHandler - 404 not found page
 func notFoundHandler(w http.ResponseWriter, r *http.Request) {
-
-	err := templates.ExecuteTemplate(w, "404.html", nil)
-	if err != nil {
-		http.Error(w, "Failed to render result", http.StatusInternalServerError)
-	}
-	http.Error(w, "", http.StatusNotFound)
-	// w.WriteHeader(http.StatusNotFound)
+	renderError(w, http.StatusNotFound, "404 - Page Not Found")
 }

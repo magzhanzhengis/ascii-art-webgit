@@ -7,12 +7,12 @@ import (
 )
 
 // ReadBannerFile reads the content of the banner file and returns it as a slice of strings.
-func ReadBannerFile(filePath string) []string {
+func ReadBannerFile(filePath string) ([]string, error) {
 	content, err := os.ReadFile(filePath)
 	if err != nil {
-		panic(fmt.Sprintf("Failed to read banner file %s: %v", filePath, err))
+		return nil, fmt.Errorf("failed to read banner file %s: %v", filePath, err)
 	}
-	return strings.Split(string(content), "\n")
+	return strings.Split(string(content), "\n"), nil
 }
 
 // ParseBanner converts banner file lines into a 2D slice representing ASCII templates.
